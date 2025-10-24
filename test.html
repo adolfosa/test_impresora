@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Directa Impresora KR403</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background: #219a52;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖨️ Prueba Directa Impresora KR403</h1>
+            <p>Impresión directa desde el navegador usando WebUSB</p>
+        </div>
+        
+        <div class="test-section">
+            <div class="form-group">
+                <label for="patente">Texto a Imprimir:</label>
+                <input type="text" id="patente" placeholder="Ingresa el texto a imprimir" value="PATENTE TEST 123">
+            </div>
+            
+            <button class="btn btn-success" onclick="connectAndPrint()">
+                🔌 Conectar e Imprimir
+            </button>
+            
+            <button class="btn btn-warning" onclick="testRawPrint()">
+                🖨️ Imprimir Texto Simple
+            </button>
+            
+            <button class="btn" onclick="printBarcodeTest()">
+                📊 Imprimir Código de Barras
+            </button>
+            
+            <div id="status" class="status"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ul>
+                <li>Conecta la impresora KR403 por USB</li>
+                <li>Haz clic en "Conectar e Imprimir"</li>
+                <li>Selecciona la impresora en el diálogo USB</li>
+                <li>El navegador enviará los datos directamente a la impresora</li>
+                <li><strong>Nota:</strong> WebUSB requiere HTTPS o localhost</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let selectedDevice = null;
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        async function connectAndPrint() {
+            try {
+                showStatus('🔌 Solicitando acceso a la impresora...', 'info');
+                
+                // Filtrar por la impresora KR403
+                const filters = [
+                    { vendorId: 0x0483, productId: 0x5743 }  // KR403
+                ];
+                
+                // Solicitar dispositivo USB
+                selectedDevice = await navigator.usb.requestDevice({ filters });
+                showStatus(`✅ Dispositivo seleccionado: ${selectedDevice.productName || 'KR403'}`, 'success');
+                
+                // Conectar al dispositivo
+                await selectedDevice.open();
+                await selectedDevice.selectConfiguration(1);
+                await selectedDevice.claimInterface(0);
+                
+                // Ahora imprimir
+                await printToDevice();
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function printToDevice() {
+            if (!selectedDevice) {
+                showStatus('❌ Primero conecta la impresora', 'error');
+                return;
+            }
+
+            try {
+                const patente = document.getElementById('patente').value || 'TEST';
+                showStatus('📄 Preparando datos para imprimir...', 'info');
+                
+                // Crear contenido del ticket
+                const ticketContent = `
+========================
+   PARKING WIT
+========================
+Patente: ${patente}
+Fecha: ${new Date().toLocaleString()}
+------------------------
+Ticket de prueba
+Sistema funcionando OK
+========================
+
+`;
+                
+                // Convertir a bytes
+                const encoder = new TextEncoder();
+                const data = encoder.encode(ticketContent);
+                
+                // Enviar datos a la impresora (endpoint 0x01 para impresoras)
+                showStatus('🖨️ Enviando datos a la impresora...', 'info');
+                await selectedDevice.transferOut(1, data);
+                
+                showStatus('✅ Ticket impreso correctamente!', 'success');
+                
+                // Liberar el dispositivo
+                await selectedDevice.close();
+                
+            } catch (error) {
+                showStatus(`❌ Error al imprimir: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRawPrint() {
+            try {
+                showStatus('🔌 Buscando impresora KR403...', 'info');
+                
+                const filters = [
+                    { vendorId: 0x0483, productId: 0x5743 }
+                ];
+                
+                const devices = await navigator.usb.getDevices();
+                let device = devices.find(d => 
+                    d.vendorId === 0x0483 && d.productId === 0x5743
+                );
+                
+                if (!device) {
+                    device = await navigator.usb.requestDevice({ filters });
+                }
+                
+                await device.open();
+                await device.selectConfiguration(1);
+                await device.claimInterface(0);
+                
+                const text = document.getElementById('patente').value || 'TEST';
+                const testData = `\n\n=== PRUEBA KR403 ===\nTexto: ${text}\nFecha: ${new Date().toLocaleString()}\n====================\n\n\n`;
+                
+                const encoder = new TextEncoder();
+                await device.transferOut(1, encoder.encode(testData));
+                
+                await device.close();
+                showStatus('✅ Texto impreso correctamente!', 'success');
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function printBarcodeTest() {
+            try {
+                showStatus('📊 Preparando código de barras...', 'info');
+                
+                const filters = [
+                    { vendorId: 0x0483, productId: 0x5743 }
+                ];
+                
+                const device = await navigator.usb.requestDevice({ filters });
+                await device.open();
+                await device.selectConfiguration(1);
+                await device.claimInterface(0);
+                
+                const patente = document.getElementById('patente').value || 'TEST123';
+                
+                // Comandos ESC/POS para impresora térmica
+                const commands = [];
+                const encoder = new TextEncoder();
+                
+                // Reset
+                commands.push(encoder.encode('\x1B@'));
+                // Texto normal
+                commands.push(encoder.encode('Código de Barras:\n'));
+                // Establecer código de barras Code128
+                commands.push(encoder.encode('\x1Dk\x04' + patente + '\x00'));
+                // Salto de línea
+                commands.push(encoder.encode('\n\n'));
+                // Cortar papel (si está soportado)
+                commands.push(encoder.encode('\n\n\n\x1D\x56\x00'));
+                
+                // Enviar todos los comandos
+                for (const command of commands) {
+                    await device.transferOut(1, command);
+                }
+                
+                await device.close();
+                showStatus('✅ Código de barras enviado!', 'success');
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Verificar si WebUSB está soportado
+        if (!navigator.usb) {
+            showStatus('❌ WebUSB no está soportado en este navegador. Usa Chrome, Edge, o Opera.', 'error');
+        } else {
+            showStatus('✅ WebUSB está disponible. Conecta la impresora y haz clic en "Conectar e Imprimir".', 'success');
+        }
+
+        // Auto-focus en el campo de texto
+        document.getElementById('patente').focus();
+    </script>
+</body>
+</html>
